@@ -35,8 +35,14 @@ print(dataset.shape)
 
 dataset = dataset[0:3000]
 
-dataset["stars"] = dataset["stars"].replace(2, 3)
-dataset["stars"] = dataset["stars"].replace(4, 3)
+# # # If we group 2 3 4 into one group
+# dataset["stars"] = dataset["stars"].replace(2, 3)
+# dataset["stars"] = dataset["stars"].replace(4, 3)
+
+# # # If we give up 2 and 4
+dataset = dataset[(dataset['stars']==1)|(dataset['stars']==3)|(dataset['stars']==5)]
+dataset.reset_index(drop=True, inplace=True)
+
 
 print(dataset.shape)
 
@@ -71,6 +77,47 @@ results = kfold_template.run_kfold(data, target, 4, machine, 1, 1)
 print(results[1])
 for i in results[2]:
 	print(i)
+
+
+
+machine = MultinomialNB()
+machine.fit(data, target)
+
+
+# # # # To make prediction for a single review
+# review_text = "This is horrible! This restaurant is do expensive. The service is bad."
+# review_text_transformed = count_vectorize_transformer.transform([review_text])
+# prediction = machine.predict(review_text_transformed)
+# prediction_prob = machine.predict_proba(review_text_transformed)
+# print(prediction)
+# print(prediction_prob)
+
+# # # To make predictions for multiple reviews
+new_reviews = pandas.read_csv("new_reviews.csv", header=None)
+new_reviews_transformed = count_vectorize_transformer.transform(new_reviews.iloc[:,0])
+prediction = machine.predict(new_reviews_transformed)
+prediction_prob = machine.predict_proba(new_reviews_transformed)
+
+new_reviews['prediction'] = prediction
+prediction_prob_dataframe = pandas.DataFrame(prediction_prob)
+new_reviews = pandas.concat([new_reviews, prediction_prob_dataframe], axis=1)
+
+new_reviews = new_reviews.rename(columns={new_reviews.columns[0]:"text", new_reviews.columns[1]:"prediction", new_reviews.columns[2]: "prediction_prob_1", new_reviews.columns[3]: "prediction_prob_3", new_reviews.columns[4]: "prediction_prob_5"})
+
+new_reviews['prediction'] = new_reviews['prediction'].astype(int) 
+new_reviews['prediction_prob_1'] = round(new_reviews['prediction_prob_1'], 5)
+new_reviews['prediction_prob_3'] = round(new_reviews['prediction_prob_3'], 5)
+new_reviews['prediction_prob_5'] = round(new_reviews['prediction_prob_5'], 5) 
+
+
+new_reviews.to_csv("new_reviews_with_prediction.csv", index=False, float_format='%.9f')
+
+
+
+
+
+
+
 
 
 
